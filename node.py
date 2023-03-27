@@ -16,6 +16,7 @@ class Node():
         self.consensus_strategy = {}
         self.addr = addr
         self.port = port
+        self.chain = []
         const.ID_CFG_FILE = addr + str(port) + "identity.json" 
     
     def init(self):
@@ -48,7 +49,7 @@ class Node():
             port = self.port
         )
         r = requests.get(url = url)
-        if (r.text == const.SUCEESS):
+        if (r.text == const.SUCCESS):
             return True
         return False
 
@@ -82,12 +83,25 @@ class TestNode(Node):
         self.transaction_pool.append(transaction)
         self.broadcast_transaction(transaction)
     
+    def generate_block(self):
+        block = self.consensus_strategy.build_block()
+        self.transaction_pool = [] # clear the transaction pool after building a block(may need change later)
+        self.broadcast_block(block)
+
     def broadcast_transaction(self, transaction = None):
         for peer in peer_list:
             url = "http://{host}:{port}/broadcast_transaction_handler".format(host = peer["addr"], port = peer["port"])
             requests.post(url, data = json.dumps(transaction))
     
+    def broadcast_block(self, block = None):
+        for peer in peer_list:
+            url = "http://{host}:{port}/broadcast_block_handler".format(host = peer["addr"], port = peer["port"])
+            requests.post(url, data = json.dumps(block))
+
     def broadcast_transaction_handler(self, transaction = None):
         self.transaction_pool.append(transaction)
     
-    def generate_block(self):
+    def broadcast_block_handler(self, block = None):
+        if(self.consensus_strategy.check_block(block)):
+            self.chain.append(block)
+            self.transaction_pool = []

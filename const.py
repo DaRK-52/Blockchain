@@ -8,4 +8,5 @@ DEFAULT_DNS_PORT = 5252
 ADDR = "addr"
 PORT = "port"
 ERROR = "error"
-SUCEESS = "success"
+SUCCESS = "success"
+DEFAULT_POW_DIFFICULTY = 20

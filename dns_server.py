@@ -17,7 +17,7 @@ def register():
     if ([addr, port] not in peer_list):
         peer_list.append(["addr":addr, "port":port])
     
-    return const.SUCEESS
+    return const.SUCCESS
 
 @app.route("/get_peer_list", methods = ["GET"])
 def get_peer_list():
