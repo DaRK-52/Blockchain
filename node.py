@@ -1,17 +1,31 @@
 import const
 import json
+import requests
+import transaction
+import random
 from util import hashTool
 
 # The Base Class of Node should only contains
 # (pk, sk) to support p2p communication
 class Node():
-    def __init__(self, port = DEFAULT_PORT):
+    def __init__(self, addr = const.DEFAULT_ADDR, port = const.DEFAULT_PORT):
         self.public_key = ""
         self.private_key = ""
         self.peer_list = []
-        const.ID_CFG_FILE = str(port) + "identity.json" 
+        self.transaction_pool = []
+        self.consensus_strategy = {}
+        self.addr = addr
+        self.port = port
+        const.ID_CFG_FILE = addr + str(port) + "identity.json" 
     
     def init(self):
+        get_key()
+        register()
+        get_peer_list()
+
+    # get current (pk, sk) from config file
+    # if not exist, generate a new pair
+    def get_key(self):
         try:
             id_cfg_file = open(const.ID_CFG_FILE, "r")
             id = json.load(id_cfg_file)
@@ -24,10 +38,32 @@ class Node():
                 const.PUBLIC_KEY: self.public_key,
                 const.PRIVATE_KEY: self.private_key
             }, id_cfg_file)
+    
+    # communicate with dns server to register identity
+    def register(self):
+        url = "http://{dns_host}:{dns_port}/register?addr={addr}&port={port}".format(
+            dns_host = const.DEFUALT_DNS_ADDR, 
+            dns_port = const.DEFAULT_DNS_PORT,
+            addr = self.addr,
+            port = self.port
+        )
+        r = requests.get(url = url)
+        if (r.text == const.SUCEESS):
+            return True
+        return False
+
+    # communicate with dns server to get peer_list
+    def get_peer_list(self):
+        url = "http://{dns_host}:{dns_port}/get_peer_list".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
+        r = requests.get(url = url)
+        if (r.status_code == 200):
+            self.peer_list = json.loads(r.text)
+            return True
+        return False 
 
 # Voting Based Blockchain Node usually needs
 # a leader to guide most nodes work
-def VotingBasedBlockChainNode(Node):
+class VotingBasedBlockChainNode(Node):
     def __init__(self, port = DEFAULT_PORT):
         super(VotingBasedBlockChainNode, self).__init__(port = port)
         self.character = ""
@@ -35,3 +71,23 @@ def VotingBasedBlockChainNode(Node):
         self.election_strategy = {}
         self.consensus_strategy = {}
         self.transaction_pool = {}
+
+class TestNode(Node):
+    def init(self):
+        super(TestNode, self).init()
+        self.consensus_strategy = PoWStrategy(self)
+
+    def begin_transaction(self, peer = None):
+        transaction = TestTransaction(str(random.random()))
+        self.transaction_pool.append(transaction)
+        self.broadcast_transaction(transaction)
+    
+    def broadcast_transaction(self, transaction = None):
+        for peer in peer_list:
+            url = "http://{host}:{port}/broadcast_transaction_handler".format(host = peer["addr"], port = peer["port"])
+            requests.post(url, data = json.dumps(transaction))
+    
+    def broadcast_transaction_handler(self, transaction = None):
+        self.transaction_pool.append(transaction)
+    
+    def generate_block(self):
