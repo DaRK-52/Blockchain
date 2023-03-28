@@ -1,9 +1,11 @@
 import const
 import json
 import requests
-import transaction
+from transaction import TestTransaction
 import random
+from strategy import PoWStrategy
 from util import hashTool
+from block import TestBlock
 
 # The Base Class of Node should only contains
 # (pk, sk) to support p2p communication
@@ -20,9 +22,9 @@ class Node():
         const.ID_CFG_FILE = addr + str(port) + "identity.json" 
     
     def init(self):
-        get_key()
-        register()
-        get_peer_list()
+        self.get_key()
+        self.register()
+        self.get_peer_list()
 
     # get current (pk, sk) from config file
     # if not exist, generate a new pair
@@ -65,7 +67,7 @@ class Node():
 # Voting Based Blockchain Node usually needs
 # a leader to guide most nodes work
 class VotingBasedBlockChainNode(Node):
-    def __init__(self, port = DEFAULT_PORT):
+    def __init__(self, port = const.DEFAULT_PORT):
         super(VotingBasedBlockChainNode, self).__init__(port = port)
         self.character = ""
         self.leader = {}
@@ -74,34 +76,54 @@ class VotingBasedBlockChainNode(Node):
         self.transaction_pool = {}
 
 class TestNode(Node):
-    def init(self):
+    def init(self, addr = const.DEFAULT_ADDR, port = const.DEFAULT_PORT):
+        self.addr = addr
+        self.port = port
         super(TestNode, self).init()
         self.consensus_strategy = PoWStrategy(self)
+        print(self.consensus_strategy)
 
     def begin_transaction(self, peer = None):
         transaction = TestTransaction(str(random.random()))
         self.transaction_pool.append(transaction)
+        for i in range(len(self.transaction_pool)):
+            print(str(self.transaction_pool[i]))
         self.broadcast_transaction(transaction)
     
-    def generate_block(self):
+    def build_block(self):
         block = self.consensus_strategy.build_block()
         self.transaction_pool = [] # clear the transaction pool after building a block(may need change later)
+        self.chain.append(block)
         self.broadcast_block(block)
 
     def broadcast_transaction(self, transaction = None):
-        for peer in peer_list:
+        # TODO: get_peer_list need a background run
+        self.get_peer_list()
+        for peer in self.peer_list:
+            if (peer["addr"] == self.addr and peer["port"] == self.port):
+                continue
             url = "http://{host}:{port}/broadcast_transaction_handler".format(host = peer["addr"], port = peer["port"])
-            requests.post(url, data = json.dumps(transaction))
+            requests.post(url, data = json.dumps(transaction.__dict__))
     
     def broadcast_block(self, block = None):
-        for peer in peer_list:
+        # TODO: get_peer_list need a background run
+        self.get_peer_list()
+        for peer in self.peer_list:
+            if (peer["addr"] == self.addr and peer["port"] == self.port):
+                continue
             url = "http://{host}:{port}/broadcast_block_handler".format(host = peer["addr"], port = peer["port"])
-            requests.post(url, data = json.dumps(block))
+            requests.post(url, data = json.dumps(block.__dict__))
 
     def broadcast_transaction_handler(self, transaction = None):
-        self.transaction_pool.append(transaction)
+        serialized_transaction = TestTransaction("")
+        serialized_transaction.msg = transaction["msg"]
+        self.transaction_pool.append(serialized_transaction)
     
     def broadcast_block_handler(self, block = None):
-        if(self.consensus_strategy.check_block(block)):
-            self.chain.append(block)
+        serialized_block = TestBlock()
+        serialized_block.nonce = block["nonce"]
+        serialized_block.previous_hash = block["previous_hash"]
+        serialized_block.block_body = block["block_body"]
+        if(self.consensus_strategy.check_block(serialized_block)):
+            self.chain.append(serialized_block)
             self.transaction_pool = []

@@ -14,8 +14,8 @@ def register():
     
     if (port == None or addr == None):
         return const.ERROR
-    if ([addr, port] not in peer_list):
-        peer_list.append(["addr":addr, "port":port])
+    if ({"addr":addr, "port":port} not in peer_list):
+        peer_list.append({"addr":addr, "port":port})
     
     return const.SUCCESS
 

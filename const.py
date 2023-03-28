@@ -9,4 +9,4 @@ ADDR = "addr"
 PORT = "port"
 ERROR = "error"
 SUCCESS = "success"
-DEFAULT_POW_DIFFICULTY = 20
+DEFAULT_POW_DIFFICULTY = 15
