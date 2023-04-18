@@ -14,6 +14,7 @@ class Node():
         self.public_key = ""
         self.private_key = ""
         self.peer_list = []
+        self.connected_peer_list = []
         self.transaction_pool = []
         self.consensus_strategy = {}
         self.addr = addr
@@ -62,7 +63,20 @@ class Node():
         if (r.status_code == 200):
             self.peer_list = json.loads(r.text)
             return True
-        return False 
+        return False
+    
+    def connect_to_peer(self):
+        for peer in self.peer_list:
+            if (peer["addr"] == self.addr and peer["port"] == self.port):
+                continue
+            url = "http://{host}:{port}/connect".format(host = peer["addr"], port = peer["port"])
+            data = json.dumps({
+                "addr" : self.addr,
+                "port" : self.port
+            })
+            r = requests.post(url, data = data)
+            if (r.text == const.SUCCESS):
+                self.connected_peer_list.append(peer)
 
 # Voting Based Blockchain Node usually needs
 # a leader to guide most nodes work
@@ -96,30 +110,27 @@ class TestNode(Node):
         self.chain.append(block)
         self.broadcast_block(block)
 
-    def broadcast_transaction(self, transaction = None):
-        # TODO: get_peer_list need a background run
-        self.get_peer_list()
-        for peer in self.peer_list:
-            if (peer["addr"] == self.addr and peer["port"] == self.port):
+    def broadcast_transaction(self, transaction = None, src_peer = None):
+        for peer in self.connected_peer_list:
+            if (peer["addr"] == self.addr and peer["port"] == self.port and peer != src_peer):
                 continue
             url = "http://{host}:{port}/broadcast_transaction_handler".format(host = peer["addr"], port = peer["port"])
             requests.post(url, data = json.dumps(transaction.__dict__))
     
-    def broadcast_block(self, block = None):
-        # TODO: get_peer_list need a background run
-        self.get_peer_list()
-        for peer in self.peer_list:
-            if (peer["addr"] == self.addr and peer["port"] == self.port):
+    def broadcast_block(self, block = None, src_peer = None):
+        for peer in self.connected_peer_list:
+            if (peer["addr"] == self.addr and peer["port"] == self.port and peer != src_peer):
                 continue
             url = "http://{host}:{port}/broadcast_block_handler".format(host = peer["addr"], port = peer["port"])
             requests.post(url, data = json.dumps(block.__dict__))
 
-    def broadcast_transaction_handler(self, transaction = None):
+    def broadcast_transaction_handler(self, transaction = None, environ):
         serialized_transaction = TestTransaction("")
         serialized_transaction.msg = transaction["msg"]
         self.transaction_pool.append(serialized_transaction)
+        self.broadcast_transaction(serialized_transaction, src_peer = {"addr" : environ["REMOTE_ADDR"], "port" : int(environ["REMOTE_PORT"])})
     
-    def broadcast_block_handler(self, block = None):
+    def broadcast_block_handler(self, block = None, environ):
         serialized_block = TestBlock()
         serialized_block.nonce = block["nonce"]
         serialized_block.previous_hash = block["previous_hash"]
@@ -127,3 +138,4 @@ class TestNode(Node):
         if(self.consensus_strategy.check_block(serialized_block)):
             self.chain.append(serialized_block)
             self.transaction_pool = []
+        self.broadcast_block(serialized_block, src_peer = {"addr" : environ["REMOTE_ADDR"], "port" : int(environ["REMOTE_PORT"])})

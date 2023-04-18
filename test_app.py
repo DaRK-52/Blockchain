@@ -3,19 +3,20 @@ from argparse import ArgumentParser
 import node
 import json
 import const
+import random
 
 app = Flask(__name__)
 
 @app.route("/broadcast_transaction_handler", methods = ["POST"])
 def broadcast_transaction_handler():
     msg = json.loads(request.get_data())
-    node.broadcast_transaction_handler(msg)
+    node.broadcast_transaction_handler(msg, request.environ)
     return const.SUCCESS
 
 @app.route("/broadcast_block_handler", methods = ["POST"])
 def broadcast_block_handler():
     msg = json.loads(request.get_data())
-    node.broadcast_block_handler(msg)
+    node.broadcast_block_handler(msg, request.environ)
     return const.SUCCESS
 
 @app.route("/build_block", methods = ["GET"])
@@ -33,6 +34,14 @@ def print_block():
 @app.route("/begin_transaction", methods = ["GET"])
 def begin_transaction():
     node.begin_transaction()
+    return const.SUCCESS
+
+@app.route("/connect", methods = ["POST"])
+def connection_from_peer():
+    msg = json.loads(request.get_data())
+    if (len(node.connected_peer_list) >= const.DEFAULT_PEER_NUM and random.choices([0, 1], weights = (len(node.connected_peer_list), 1))):
+        return const.ERROR
+    node.connected_peer_list.append(msg)
     return const.SUCCESS
 
 if __name__ == "__main__":

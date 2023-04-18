@@ -1,6 +1,7 @@
 from flask import Flask, request
 import const
 import json
+import numpy as np
 
 app = Flask(__name__)
 
@@ -16,11 +17,12 @@ def register():
         return const.ERROR
     if ({"addr":addr, "port":port} not in peer_list):
         peer_list.append({"addr":addr, "port":port})
-    
     return const.SUCCESS
 
 @app.route("/get_peer_list", methods = ["GET"])
 def get_peer_list():
+    if (len(peer_list) >= const.DEFAULT_PEER_NUM):
+        return json.dumps(list(np.random.choice(peer_list, const.DEFAULT_PEER_NUM, replace = False)))
     return json.dumps(peer_list)
 
 if (__name__ == "__main__"):

@@ -49,3 +49,7 @@ class PoWStrategy(CStartegy):
         if(int(hashlib.sha256(str(block.nonce).encode()).hexdigest(), 16) >= ((1 << 255) >> self.difficulty)):
             return False
         return True
+
+class SSLEStrategy(EStrategy):
+    def __init__(self, node = None):
+        self.node = node

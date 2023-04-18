@@ -10,3 +10,4 @@ PORT = "port"
 ERROR = "error"
 SUCCESS = "success"
 DEFAULT_POW_DIFFICULTY = 15
+DEFAULT_PEER_NUM = 10
