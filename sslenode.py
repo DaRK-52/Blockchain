@@ -1,5 +1,6 @@
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
+from charm.core.engine.util import objectToBytes, bytesToObject
 from node import Node
 import requests
 
@@ -17,7 +18,7 @@ def SSLENode(Node):
             self.broadcast_g(self.g)
             self.r = self.group.random(ZR)
             self.x = self.group.random(ZR)
-            self.shared_list.append([g ** r, g ** (x * r)])
+            self.shared_list.append([objectToBytes(g ** r), objectToBytes(g ** (x * r)])
             self.broadcast_shared_list()
     
     def broadcast_g(self, g):
@@ -29,5 +30,5 @@ def SSLENode(Node):
     def broadcast_shared_list(self):
         for peer in self.peer_list:
             url = "http://{host}:{port}/broadcast_shared_list_handler".format(host = peer["addr"], port = peer["port"])
-            data = json.dumps(self.shared_list)
+            data = self.shared_list
             requests.post(url, data = data)
