@@ -20,7 +20,7 @@ class Node():
         self.addr = addr
         self.port = port
         self.chain = []
-        const.ID_CFG_FILE = addr + str(port) + "identity.json" 
+        self.id_cfg_file = addr + str(port) + "identity.json" 
     
     def init(self):
         self.get_key()
@@ -31,13 +31,13 @@ class Node():
     # if not exist, generate a new pair
     def get_key(self):
         try:
-            id_cfg_file = open(const.ID_CFG_FILE, "r")
+            id_cfg_file = open(self.id_cfg_file, "r")
             id = json.load(id_cfg_file)
             self.public_key = id[const.PUBLIC_KEY]
             self.private_key = id[const.PRIVATE_KEY]
         except FileNotFoundError:
             self.public_key, self.private_key = hashTool.generate_ECDSA_keys()
-            id_cfg_file = open(const.ID_CFG_FILE, "w")
+            id_cfg_file = open(self.id_cfg_file, "w")
             json.dump({
                 const.PUBLIC_KEY: self.public_key,
                 const.PRIVATE_KEY: self.private_key
@@ -45,11 +45,9 @@ class Node():
     
     # communicate with dns server to register identity
     def register(self):
-        url = "http://{dns_host}:{dns_port}/register?addr={addr}&port={port}".format(
+        url = "http://{dns_host}:{dns_port}/register".format(
             dns_host = const.DEFUALT_DNS_ADDR, 
-            dns_port = const.DEFAULT_DNS_PORT,
-            addr = self.addr,
-            port = self.port
+            dns_port = const.DEFAULT_DNS_PORT
         )
         r = requests.get(url = url)
         if (r.text == const.SUCCESS):
@@ -60,7 +58,7 @@ class Node():
     def get_peer_list(self):
         url = "http://{dns_host}:{dns_port}/get_peer_list".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
         r = requests.get(url = url)
-        if (r.status_code == 200):
+        if (r.text != None):
             self.peer_list = json.loads(r.text)
             return True
         return False
@@ -70,11 +68,7 @@ class Node():
             if (peer["addr"] == self.addr and peer["port"] == self.port):
                 continue
             url = "http://{host}:{port}/connect".format(host = peer["addr"], port = peer["port"])
-            data = json.dumps({
-                "addr" : self.addr,
-                "port" : self.port
-            })
-            r = requests.post(url, data = data)
+            r = requests.get(url)
             if (r.text == const.SUCCESS):
                 self.connected_peer_list.append(peer)
 
@@ -93,6 +87,7 @@ class TestNode(Node):
     def init(self, addr = const.DEFAULT_ADDR, port = const.DEFAULT_PORT):
         self.addr = addr
         self.port = port
+        self.id_cfg_file = addr + str(port) + "identity.json" 
         super(TestNode, self).init()
         self.consensus_strategy = PoWStrategy(self)
         print(self.consensus_strategy)

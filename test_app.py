@@ -36,9 +36,11 @@ def begin_transaction():
     node.begin_transaction()
     return const.SUCCESS
 
-@app.route("/connect", methods = ["POST"])
+@app.route("/connect", methods = ["GET"])
 def connection_from_peer():
-    msg = json.loads(request.get_data())
+    addr = request.environ["REMOTE_ADDR"]
+    port = request.environ["REMOTE_PORT"]
+    peer = ["addr": addr, "port": port]
     if (len(node.connected_peer_list) >= const.DEFAULT_PEER_NUM and random.choices([0, 1], weights = (len(node.connected_peer_list), 1))):
         return const.ERROR
     node.connected_peer_list.append(msg)

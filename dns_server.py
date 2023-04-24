@@ -10,8 +10,8 @@ app = Flask(__name__)
 # TODO: persistance or addr check
 @app.route("/register", methods = ["GET"])
 def register():
-    addr = request.args.get(const.ADDR)
-    port = request.args.get(const.PORT)
+    addr = request.environ["REMOTE_ADDR"]
+    port = request.environ["REMOTE_PORT"]
     
     if (port == None or addr == None):
         return const.ERROR
