@@ -53,3 +53,12 @@ class PoWStrategy(CStartegy):
 class SSLEStrategy(EStrategy):
     def __init__(self, node = None):
         self.node = node
+    
+    # The pulic list is empty at this time
+    def begin_election():
+        pass
+    
+    # The elected leader substitute its secret
+    def incre_election():
+        if (node.leader == {"addr": node.addr, "port": node.port}):
+            pass

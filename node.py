@@ -72,17 +72,6 @@ class Node():
             if (r.text == const.SUCCESS):
                 self.connected_peer_list.append(peer)
 
-# Voting Based Blockchain Node usually needs
-# a leader to guide most nodes work
-class VotingBasedBlockChainNode(Node):
-    def __init__(self, port = const.DEFAULT_PORT):
-        super(VotingBasedBlockChainNode, self).__init__(port = port)
-        self.character = ""
-        self.leader = {}
-        self.election_strategy = {}
-        self.consensus_strategy = {}
-        self.transaction_pool = {}
-
 class TestNode(Node):
     def init(self, addr = const.DEFAULT_ADDR, port = const.DEFAULT_PORT):
         self.addr = addr
