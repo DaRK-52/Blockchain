@@ -26,6 +26,7 @@ class Node():
         self.get_key()
         self.register()
         self.get_peer_list()
+        self.connect_to_peer()
 
     # get current (pk, sk) from config file
     # if not exist, generate a new pair
@@ -63,6 +64,7 @@ class Node():
             return True
         return False
     
+    # try to connect to peer in the peer list
     def connect_to_peer(self):
         for peer in self.peer_list:
             if (peer["addr"] == self.addr and peer["port"] == self.port):
@@ -71,6 +73,14 @@ class Node():
             r = requests.get(url)
             if (r.text == const.SUCCESS):
                 self.connected_peer_list.append(peer)
+    
+    # decide whether build connection with peer who launch connection
+    def connection_from_peer(self, peer):
+        if ({"addr": peer["addr"], "port": peer["port"]} not in self.connected_peer_list):
+            if (len(self.connected_peer_list) >= const.DEFAULT_PEER_NUM and random.choices([0, 1], weights = (len(self.connected_peer_list), 1))):
+                return const.ERROR
+            self.connected_peer_list.append(peer)
+        return const.SUCCESS
 
 class TestNode(Node):
     def init(self, addr = const.DEFAULT_ADDR, port = const.DEFAULT_PORT):

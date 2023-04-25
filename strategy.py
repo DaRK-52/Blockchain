@@ -3,6 +3,9 @@ import random
 import const
 from block import TestBlock
 import json
+from charm.toolbox.eccurve import prime192v1
+from charm.toolbox.ecgroup import ECGroup, G, ZR
+from charm.core.engine.util import objectToBytes, bytesToObject
 
 class Strategy():
     pass
@@ -55,10 +58,31 @@ class SSLEStrategy(EStrategy):
         self.node = node
     
     # The pulic list is empty at this time
+    # we need to broadcast our group parameter g
+    # and the list with our own secret value
     def begin_election():
-        pass
+        self.node.g = self.group.random(G)
+        self.node.broadcast_group_primitive()
+
+        r = self.node.group.random(ZR)
+        self.node.x = self.node.group.random(ZR)
+        self.node.shared_list.append([objectToBytes(self.node.g ** r).decode(), objectToBytes(self.node.g ** (self.node.x * r)).decode()])
+        self.shuffle()
+        self.node.broadcast_shared_list()
     
     # The elected leader substitute its secret
     def incre_election():
         if (node.leader == {"addr": node.addr, "port": node.port}):
             pass
+    
+    # Every time we start ssle, we need to blind and shuffle the list
+    def shuffle():
+        # TODO: blind the list
+        temp_list = []
+        r = self.node.group.random(ZR)
+        for item in self.node.shared_list:
+            u = bytesToObject(item[0].encode())
+            v = bytesToObject(item[1].encode())
+            temp_list.append([objectToBytes(u ** r).decode(), objectToBytes(v ** r).decode()])
+        self.node.shared_list = temp_list
+        random.shuffle(self.node.shared_list)

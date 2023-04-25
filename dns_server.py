@@ -35,19 +35,12 @@ def register_as_validator():
         return const.ERROR
     if ({"addr":addr, "port":port} not in validator_list):
         validator_list.append({"addr":addr, "port":port})
-    return const.SUCCESS
+    # when registration succeed, return the index of the validator which will be used in ssle
+    return len(validator_list)
 
 @app.route("/get_validator_list", methods = ["GET"])
 def get_validator_list():
     return json.dumps(validator_list)
-
-# SSLE Node needs an index to decide which one 
-# first upload their secret
-@app.route("/get_index", methods = ["GET"])
-def get_index():
-    addr = request.environ["REMOTE_ADDR"]
-    port = request.environ["REMOTE_PORT"]
-    return validator_list.index({"addr": addr, "port": port})
 
 if (__name__ == "__main__"):
     peer_list = []
