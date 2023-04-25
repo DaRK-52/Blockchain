@@ -2,6 +2,7 @@ from flask import Flask, request
 import const
 import json
 import numpy as np
+import random
 
 app = Flask(__name__)
 
@@ -42,7 +43,12 @@ def register_as_validator():
 def get_validator_list():
     return json.dumps(validator_list)
 
+@app.route("/get_random_number_ssle", methods = ["POST"])
+def get_random_number_ssle():
+    return random.randint(1, len(validator_list))
+
 if (__name__ == "__main__"):
     peer_list = []
     validator_list = []
+    counter = 0
     app.run(debug = True, host = const.DEFUALT_DNS_ADDR, port = const.DEFAULT_DNS_PORT)

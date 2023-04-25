@@ -17,6 +17,7 @@ def SSLENode(Node):
         self.g = ""
         self.x = ""
         self.leader = []
+        self.leader_index = -1
         self.shared_list = []
         self.election_strategy = SSLEStrategy(self)
         url = "http://{dns_host}:{dns_port}/register_as_validator".format(
@@ -44,10 +45,14 @@ def SSLENode(Node):
             validator_list.append(validator)
     
     def election(self):
-        if (self.shared_list == []):
+        # start the election from beginning when the list is empty or full
+        if (self.shared_list == [] or len(self.shared_list) == self.index - 1):
             self.election_strategy.begin_election()
-        else:
+        else if (len(self.shared_list) == len(self.validator_list)):
             self.election_strategy.incre_election()
+    
+    def check_leader(self, x = None):
+        self.election_strategy.check_leader(x)
 
     def get_validator_list(self):
         url = "http://{dns_host}:{dns_port}/get_validator_list".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
@@ -73,3 +78,12 @@ def SSLENode(Node):
                 continue
             url = "http://{host}:{port}/broadcast_group_primitive_handler".format(host = validator["addr"], port = validator["port"])
             requests.post(url, data = json.dumps(objectToBytes(self.g).decode()))
+    
+    def broadcast_identity(self):
+        for validator in validator_list:
+            # neglect oneself
+            if (validator["addr"] == self.addr and validator["port"] == self.port):
+                continue
+            url = "http://{host}:{port}/broadcast_identity_handler".format(host = validator["addr"], port = validator["port"])
+            requests.post(url, data = json.dumps(objectToBytes(self.x).decode()))
+    

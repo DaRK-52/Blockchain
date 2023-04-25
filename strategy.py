@@ -60,9 +60,10 @@ class SSLEStrategy(EStrategy):
     # The pulic list is empty at this time
     # we need to broadcast our group parameter g
     # and the list with our own secret value
-    def begin_election():
-        self.node.g = self.group.random(G)
-        self.node.broadcast_group_primitive()
+    def begin_election(self):
+        if (self.node.shared_list == []):
+            self.node.g = self.group.random(G)
+            self.node.broadcast_group_primitive()
 
         r = self.node.group.random(ZR)
         self.node.x = self.node.group.random(ZR)
@@ -71,8 +72,8 @@ class SSLEStrategy(EStrategy):
         self.node.broadcast_shared_list()
     
     # The elected leader substitute its secret
-    def incre_election():
-        if (node.leader == {"addr": node.addr, "port": node.port}):
+    def incre_election(self):
+        if (self.check_leader()):
             pass
     
     # Every time we start ssle, we need to blind and shuffle the list
@@ -86,3 +87,12 @@ class SSLEStrategy(EStrategy):
             temp_list.append([objectToBytes(u ** r).decode(), objectToBytes(v ** r).decode()])
         self.node.shared_list = temp_list
         random.shuffle(self.node.shared_list)
+    
+    def check_leader(self, x = None):
+        if (x == None):
+            x = self.node.x
+        u = bytesToObject(self.node.shared_list[self.node.leader_index][0].encode())
+        v = bytesToObject(self.node.shared_list[self.node.leader_index][1].encode())
+        if (u ** x == v):
+            return True
+        return False
