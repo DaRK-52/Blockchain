@@ -26,7 +26,7 @@ class Node():
         self.get_key()
         self.register()
         self.get_peer_list()
-        self.connect_to_peer()
+        # self.connect_to_peer()
 
     # get current (pk, sk) from config file
     # if not exist, generate a new pair
@@ -50,7 +50,10 @@ class Node():
             dns_host = const.DEFUALT_DNS_ADDR, 
             dns_port = const.DEFAULT_DNS_PORT
         )
-        r = requests.get(url = url)
+        r = requests.post(url = url, data = json.dumps({
+            "addr": self.addr,
+            "port": self.port
+        }))
         if (r.text == const.SUCCESS):
             return True
         return False
@@ -70,7 +73,10 @@ class Node():
             if (peer["addr"] == self.addr and peer["port"] == self.port):
                 continue
             url = "http://{host}:{port}/connect".format(host = peer["addr"], port = peer["port"])
-            r = requests.get(url)
+            r = requests.post(url, data = json.dumps({
+                "addr": self.addr,
+                "port": self.port
+            }))
             if (r.text == const.SUCCESS):
                 self.connected_peer_list.append(peer)
     
@@ -118,13 +124,13 @@ class TestNode(Node):
             url = "http://{host}:{port}/broadcast_block_handler".format(host = peer["addr"], port = peer["port"])
             requests.post(url, data = json.dumps(block.__dict__))
 
-    def broadcast_transaction_handler(self, transaction = None, environ):
+    def broadcast_transaction_handler(self, transaction = None, environ = None):
         serialized_transaction = TestTransaction("")
         serialized_transaction.msg = transaction["msg"]
         self.transaction_pool.append(serialized_transaction)
         self.broadcast_transaction(serialized_transaction, src_peer = {"addr" : environ["REMOTE_ADDR"], "port" : int(environ["REMOTE_PORT"])})
     
-    def broadcast_block_handler(self, block = None, environ):
+    def broadcast_block_handler(self, block = None, environ = None):
         serialized_block = TestBlock()
         serialized_block.nonce = block["nonce"]
         serialized_block.previous_hash = block["previous_hash"]

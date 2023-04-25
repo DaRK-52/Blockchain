@@ -62,12 +62,12 @@ class SSLEStrategy(EStrategy):
     # and the list with our own secret value
     def begin_election(self):
         if (self.node.shared_list == []):
-            self.node.g = self.group.random(G)
+            self.node.g = self.node.group.random(G)
             self.node.broadcast_group_primitive()
 
         r = self.node.group.random(ZR)
         self.node.x = self.node.group.random(ZR)
-        self.node.shared_list.append([objectToBytes(self.node.g ** r).decode(), objectToBytes(self.node.g ** (self.node.x * r)).decode()])
+        self.node.shared_list.append([objectToBytes(self.node.g ** r, self.node.group).decode(), objectToBytes(self.node.g ** (self.node.x * r), self.node.group).decode()])
         self.shuffle()
         self.node.broadcast_shared_list()
     
@@ -77,22 +77,22 @@ class SSLEStrategy(EStrategy):
             pass
     
     # Every time we start ssle, we need to blind and shuffle the list
-    def shuffle():
+    def shuffle(self):
         # TODO: blind the list
         temp_list = []
         r = self.node.group.random(ZR)
         for item in self.node.shared_list:
-            u = bytesToObject(item[0].encode())
-            v = bytesToObject(item[1].encode())
-            temp_list.append([objectToBytes(u ** r).decode(), objectToBytes(v ** r).decode()])
+            u = bytesToObject(item[0].encode(), self.node.group)
+            v = bytesToObject(item[1].encode(), self.node.group)
+            temp_list.append([objectToBytes(u ** r, self.node.group).decode(), objectToBytes(v ** r, self.node.group).decode()])
         self.node.shared_list = temp_list
         random.shuffle(self.node.shared_list)
     
     def check_leader(self, x = None):
         if (x == None):
             x = self.node.x
-        u = bytesToObject(self.node.shared_list[self.node.leader_index][0].encode())
-        v = bytesToObject(self.node.shared_list[self.node.leader_index][1].encode())
+        u = bytesToObject(self.node.shared_list[self.node.leader_index][0].encode(), self.node.group)
+        v = bytesToObject(self.node.shared_list[self.node.leader_index][1].encode(), self.node.group)
         if (u ** x == v):
             return True
         return False
