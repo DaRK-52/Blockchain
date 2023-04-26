@@ -1,6 +1,0 @@
-https://github.com/Zhiyi-Zhang/el-passo.git
-
-test.py 中的 helper函数用于身份持有者携带并后续认证适用。
-
-在每次将交易打包到区块时，需要预留给每个交易反馈区块标识、交易index的功能。由于交易由leader打包，且先进先排队的话，我们可简单考虑leader可直接返回该用户的index。在接口需要保留该功能，为后续的helper使用。
-

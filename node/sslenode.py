@@ -89,5 +89,9 @@ class SSLENode(Node):
             if (validator["addr"] == self.addr and validator["port"] == self.port):
                 continue
             url = "http://{host}:{port}/broadcast_identity_handler".format(host = validator["addr"], port = validator["port"])
-            requests.post(url, data = json.dumps(objectToBytes(self.x, self.group).decode()))
+            requests.post(url, data = json.dumps({
+                "addr": self.addr,
+                "port": self.port,
+                "x": objectToBytes(self.x, self.group).decode()
+            }))
     

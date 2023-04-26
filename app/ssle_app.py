@@ -43,8 +43,6 @@ def broadcast_shared_list_handler():
             node.leader = {"addr": node.addr, "port": node.port}
             print(node.addr + ":" + node.port)
             print("I'm the leader!")
-            print("------------------------")
-            print("------------------------")
             node.broadcast_identity()
     return const.SUCCESS
 
@@ -55,9 +53,10 @@ def broadcast_group_primitive_handler():
 
 @app.route("/broadcast_identity_handler", methods = ["POST"])
 def broadcast_identity_handler():
-    addr = request.environ["REMOTE_ADDR"]
-    port = request.environ["REMOTE_PORT"]
-    x = bytesToObject(json.loads(request.get_data()).encode(), node.group)
+    msg = json.loads(request.get_data())
+    addr = msg["addr"]
+    port = msg["port"]
+    x = bytesToObject(msg["x"].encode(), node.group)
     if (node.check_leader(x = x)):
         node.leader = {"addr": addr, "port": port}
         return const.SUCCESS
