@@ -26,7 +26,7 @@ class Node():
         self.get_key()
         self.register()
         self.get_peer_list()
-        # self.connect_to_peer()
+        self.connect_to_peer()
 
     # get current (pk, sk) from config file
     # if not exist, generate a new pair

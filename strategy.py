@@ -11,9 +11,13 @@ class Strategy():
     pass
 
 class EStrategy(Strategy):
-    pass
+    def begin_election(self):
+        pass
+    
+    def check_leader(self):
+        pass
 
-class CStartegy(Strategy):
+class CStrategy(Strategy):
     def __init__(self, node = None):
         self.node = node
     
@@ -23,7 +27,7 @@ class CStartegy(Strategy):
     def check_block(self):
         pass
 
-class PoWStrategy(CStartegy):
+class PoWStrategy(CStrategy):
     def __init__(self, node = None):
         self.node = node
         self.difficulty = const.DEFAULT_POW_DIFFICULTY
@@ -78,7 +82,6 @@ class SSLEStrategy(EStrategy):
     
     # Every time we start ssle, we need to blind and shuffle the list
     def shuffle(self):
-        # TODO: blind the list
         temp_list = []
         r = self.node.group.random(ZR)
         for item in self.node.shared_list:

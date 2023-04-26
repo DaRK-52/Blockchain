@@ -72,16 +72,13 @@ class SSLENode(Node):
     
     def broadcast_shared_list(self):
         for validator in self.validator_list:
-            # neglect oneself
             if (validator["addr"] == self.addr and validator["port"] == self.port):
                 continue
-            # TODO: broadcast_shared_list_handler
             url = "http://{host}:{port}/broadcast_shared_list_handler".format(host = validator["addr"], port = validator["port"])
             requests.post(url, data = json.dumps(self.shared_list))
 
     def broadcast_group_primitive(self):
         for validator in self.validator_list:
-            # neglect oneself
             if (validator["addr"] == self.addr and validator["port"] == self.port):
                 continue
             url = "http://{host}:{port}/broadcast_group_primitive_handler".format(host = validator["addr"], port = validator["port"])
@@ -89,7 +86,6 @@ class SSLENode(Node):
     
     def broadcast_identity(self):
         for validator in self.validator_list:
-            # neglect oneself
             if (validator["addr"] == self.addr and validator["port"] == self.port):
                 continue
             url = "http://{host}:{port}/broadcast_identity_handler".format(host = validator["addr"], port = validator["port"])
