@@ -1,11 +1,13 @@
 import const
 import json
 import requests
-from transaction import TestTransaction
 import random
-from strategy import PoWStrategy
+from strategy.strategy import PoWStrategy
 from util import hashTool
-from block import TestBlock
+import sys
+sys.path.insert(0, sys.path[0]+"/../")
+from block.block import TestBlock
+from transaction.transaction import TestTransaction
 
 # The Base Class of Node should only contains
 # (pk, sk) to support p2p communication

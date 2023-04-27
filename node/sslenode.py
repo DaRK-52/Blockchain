@@ -1,11 +1,13 @@
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
-from node import Node
-from strategy import SSLEStrategy
 import requests
 import json
+import sys
+sys.path.insert(0, sys.path[0]+"/../")
 import const
+from node.node import Node
+from strategy.strategy import SSLEStrategy
 
 class SSLENode(Node):
     # x is the secret value of our node

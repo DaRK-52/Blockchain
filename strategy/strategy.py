@@ -1,7 +1,7 @@
 import hashlib
 import random
 import const
-from block import TestBlock
+from block.block import TestBlock
 import json
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR

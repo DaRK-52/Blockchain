@@ -1,13 +1,15 @@
 from flask import Flask, request
 from argparse import ArgumentParser
-import sslenode
 import json
-import const
 import random
 import requests
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
+import sys
+sys.path.insert(0, sys.path[0]+"/../")
+import node.sslenode
+import const
 
 app = Flask(__name__)
 
@@ -73,7 +75,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--port', help='port')
     args = parser.parse_args()
 
-    node = sslenode.SSLENode()
+    node = node.sslenode.SSLENode()
     node.init(addr = args.address, port = args.port)
     host = args.address
     port = args.port
