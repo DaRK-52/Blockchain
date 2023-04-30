@@ -13,26 +13,30 @@ import const
 
 app = Flask(__name__)
 
+# if flag == True, return the dict itself
+# in case we need other params
+def get_addr_port(flag = False):
+    msg = json.loads(request.get_data())
+    if (flag):
+        return msg["addr"], msg["port"], msg
+    return msg["addr"], msg["port"]
+
 @app.route("/connect", methods = ["POST"])
 def connection_from_peer():
-    msg = json.loads(request.get_data())
-    addr = msg["addr"]
-    port = msg["port"]
+    addr, port = get_addr_port()
     peer = {"addr": addr, "port": port}
     return node.connection_from_peer(peer)
 
 @app.route("/connect_validator", methods = ["POST"])
 def connection_from_validator():
-    msg = json.loads(request.get_data())
-    addr = msg["addr"]
-    port = msg["port"]
+    addr, port = get_addr_port()
     validator = {"addr": addr, "port": port}
     return node.connection_from_validator(validator)
 
 @app.route("/broadcast_shared_list_handler", methods = ["POST"])
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
-    if (len(shared_list) > len(node.shared_list)):
+    if (len(shared_list) > len(node.shared_list) or len(shared_list) == len(node.validator_list)):
         node.shared_list = shared_list
     node.election()
     
@@ -41,6 +45,7 @@ def broadcast_shared_list_handler():
         url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
         r = requests.get(url = url)
         node.leader_index = int(r.text)
+        print(node.check_leader())
         if (node.check_leader()):
             node.leader = {"addr": node.addr, "port": node.port}
             print(node.addr + ":" + node.port)
@@ -55,9 +60,7 @@ def broadcast_group_primitive_handler():
 
 @app.route("/broadcast_identity_handler", methods = ["POST"])
 def broadcast_identity_handler():
-    msg = json.loads(request.get_data())
-    addr = msg["addr"]
-    port = msg["port"]
+    addr, port, msg = get_addr_port(flag = True)
     x = bytesToObject(msg["x"].encode(), node.group)
     if (node.check_leader(x = x)):
         node.leader = {"addr": addr, "port": port}

@@ -3,6 +3,7 @@ import random
 import const
 from block.block import TestBlock
 import json
+import requests
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
@@ -78,7 +79,22 @@ class SSLEStrategy(EStrategy):
     # The elected leader substitute its secret
     def incre_election(self):
         if (self.check_leader()):
-            pass
+            x = self.node.x
+            for i in range(len(self.node.shared_list)):
+                if (self.check_secret(i, x)):
+                    self.substitute_secret(i)
+                    self.shuffle()
+                    self.node.broadcast_shared_list()
+                    break
+            url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
+            r = requests.get(url = url)
+            self.node.leader_index = int(r.text)
+            print(self.node.check_leader())
+            if (self.node.check_leader()):
+                self.node.leader = {"addr": self.node.addr, "port": self.node.port}
+                print(self.node.addr + ":" + self.node.port)
+                print("I'm the leader!")
+            self.node.broadcast_identity()
     
     # Every time we start ssle, we need to blind and shuffle the list
     def shuffle(self):
@@ -92,10 +108,19 @@ class SSLEStrategy(EStrategy):
         random.shuffle(self.node.shared_list)
     
     def check_leader(self, x = None):
-        if (x == None):
+        if (not x):
             x = self.node.x
-        u = bytesToObject(self.node.shared_list[self.node.leader_index][0].encode(), self.node.group)
-        v = bytesToObject(self.node.shared_list[self.node.leader_index][1].encode(), self.node.group)
+        return self.check_secret(self.node.leader_index, x)
+    
+    # check whether shared_list[index] belongs to oneself
+    def check_secret(self, index, x):
+        u = bytesToObject(self.node.shared_list[index][0].encode(), self.node.group)
+        v = bytesToObject(self.node.shared_list[index][1].encode(), self.node.group)
         if (u ** x == v):
             return True
         return False
+    
+    def substitute_secret(self, index):
+        self.node.shared_list.pop(index)
+        r = self.node.group.random(ZR)
+        self.node.shared_list.append([objectToBytes(self.node.g ** r, self.node.group).decode(), objectToBytes(self.node.g ** (self.node.x * r), self.node.group).decode()])
