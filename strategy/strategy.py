@@ -25,7 +25,7 @@ class CStrategy(Strategy):
     def build_block(self):
         pass
     
-    def check_block(self):
+    def check_block(self, block = None):
         pass
 
 class PoWStrategy(CStrategy):
@@ -86,6 +86,7 @@ class SSLEStrategy(EStrategy):
                     self.shuffle()
                     self.node.broadcast_shared_list()
                     break
+            # temp solution, because itself won't execute broadcast_shared_list_handler
             url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
             r = requests.get(url = url)
             self.node.leader_index = int(r.text)

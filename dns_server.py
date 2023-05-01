@@ -23,8 +23,8 @@ def register():
 
 @app.route("/get_peer_list", methods = ["GET"])
 def get_peer_list():
-    if (len(peer_list) >= const.DEFAULT_PEER_NUM):
-        return json.dumps(list(np.random.choice(peer_list, const.DEFAULT_PEER_NUM, replace = False)))
+    # if (len(peer_list) >= const.DEFAULT_PEER_NUM):
+    #     return json.dumps(list(np.random.choice(peer_list, const.DEFAULT_PEER_NUM, replace = False)))
     return json.dumps(peer_list)
 
 @app.route("/register_as_validator", methods = ["POST"])
