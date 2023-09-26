@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, sys.path[0]+"/../")
 import node.sslenode
 import const
+import time
 
 app = Flask(__name__)
 
@@ -36,12 +37,19 @@ def connection_from_validator():
 @app.route("/broadcast_shared_list_handler", methods = ["POST"])
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
-    if (len(shared_list) > len(node.shared_list) or len(shared_list) == len(node.validator_list)):
+    print("List length: " + str(len(shared_list)))
+    if len(shared_list) > len(node.shared_list) or len(shared_list) == len(node.validator_list):
         node.shared_list = shared_list
-    node.election()
+    else:
+        # TODO: just a try
+        return const.SUCCESS
+    node.begin_election()
     
     # ask dns server for the random number
-    if (len(node.shared_list) == len(node.validator_list)):
+    if len(node.shared_list) == len(node.validator_list):
+        print("start validating")
+        print(node.shared_list)
+        node.has_leader = True
         url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host = const.DEFUALT_DNS_ADDR, dns_port = const.DEFAULT_DNS_PORT)
         r = requests.get(url = url)
         node.leader_index = int(r.text)
@@ -49,7 +57,8 @@ def broadcast_shared_list_handler():
         if (node.check_leader()):
             node.leader = {"addr": node.addr, "port": node.port}
             print(node.addr + ":" + node.port)
-            print("I'm the leader!")
+            print(time.time())
+            print("I'm the leader1!")
             node.broadcast_identity()
     return const.SUCCESS
 
@@ -69,7 +78,8 @@ def broadcast_identity_handler():
 
 @app.route("/begin_election", methods = ["GET"])
 def begin_election():
-    node.election()
+    print(time.time())
+    node.begin_election()
     return const.SUCCESS
 
 if __name__ == "__main__":
