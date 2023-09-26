@@ -23,7 +23,7 @@ class EStrategy(Strategy):
 
 class CStrategy(Strategy):
     def __init__(self, node=None):
-        self.node = node
+        pass
 
     def build_block(self):
         pass
@@ -65,28 +65,36 @@ class PoWStrategy(CStrategy):
 
 class SSLEStrategy(EStrategy):
     def __init__(self, node=None):
-        self.node = node
+        self.group = ECGroup(prime192v1)
+        self.g = ""
+        self.x = ""
+        self.index = -1
+        self.leader_index = -1
+        self.shared_list = []
+        self.validator_list = node.validator_list
+        self.addr = node.addr
+        self.port = node.port
 
     # The pulic list is empty at this time
     # we need to broadcast our group parameter g
     # and the list with our own secret value
     def begin_election(self):
-        if not self.node.shared_list:
-            self.node.g = self.node.group.random(G)
-            self.node.broadcast_group_primitive()
-            
-        if len(self.node.shared_list) == self.node.index - 1:
+        if not self.shared_list:
+            self.g = self.group.random(G)
+            self.broadcast_group_primitive()
+
+        if len(self.shared_list) == self.index - 1:
             self.submit_secret()
 
         # TODO: support optimization later
-        # if len(self.node.shared_list) == len(self.node.validator_list):
+        # if len(self.shared_list) == len(self.validator_list):
         #     self.incre_election()
 
     # The elected leader substitute its secret
     def incre_election(self):
         if self.check_leader():
-            x = self.node.x
-            for i in range(len(self.node.shared_list)):
+            x = self.x
+            for i in range(len(self.shared_list)):
                 if self.check_secret(i, x):
                     self.substitute_secret(i)
                     break
@@ -94,48 +102,79 @@ class SSLEStrategy(EStrategy):
             url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
                                                                                dns_port=const.DEFAULT_DNS_PORT)
             r = requests.get(url=url)
-            self.node.leader_index = int(r.text)
-            if self.node.check_leader():
-                self.node.leader = {"addr": self.node.addr, "port": self.node.port}
-                print(self.node.addr + ":" + self.node.port)
+            self.leader_index = int(r.text)
+            if self.check_leader():
+                self.leader = {"addr": self.addr, "port": self.port}
+                print(self.addr + ":" + self.port)
                 print("I'm the leader2!")
-            self.node.broadcast_identity()
+            self.broadcast_identity()
 
     def substitute_secret(self, index):
-        self.node.shared_list.pop(index)
+        self.shared_list.pop(index)
         self.submit_secret()
 
     def submit_secret(self):
-        r = self.node.group.random(ZR)
-        self.node.x = self.node.group.random(ZR)
-        self.node.shared_list.append([objectToBytes(self.node.g ** r, self.node.group).decode(),
-                                      objectToBytes(self.node.g ** (self.node.x * r), self.node.group).decode()])
+        r = self.group.random(ZR)
+        self.x = self.group.random(ZR)
+        self.shared_list.append([objectToBytes(self.g ** r, self.group).decode(),
+                                      objectToBytes(self.g ** (self.x * r), self.group).decode()])
         self.shuffle()
-        self.node.broadcast_shared_list()
+        self.broadcast_shared_list()
 
     # Every time we start ssle, we need to blind and shuffle the list
     def shuffle(self):
         temp_list = []
-        r = self.node.group.random(ZR)
-        for item in self.node.shared_list:
-            u = bytesToObject(item[0].encode(), self.node.group)
-            v = bytesToObject(item[1].encode(), self.node.group)
+        r = self.group.random(ZR)
+        for item in self.shared_list:
+            u = bytesToObject(item[0].encode(), self.group)
+            v = bytesToObject(item[1].encode(), self.group)
             temp_list.append(
-                [objectToBytes(u ** r, self.node.group).decode(), objectToBytes(v ** r, self.node.group).decode()])
-        self.node.shared_list = temp_list
-        random.shuffle(self.node.shared_list)
+                [objectToBytes(u ** r, self.group).decode(), objectToBytes(v ** r, self.group).decode()])
+        self.shared_list = temp_list
+        random.shuffle(self.shared_list)
 
     def check_leader(self, x=None):
-        if not self.node.has_leader:
-            return False
-        if (not x):
-            x = self.node.x
-        return self.check_secret(self.node.leader_index, x)
+        if not x:
+            x = self.x
+        return self.check_secret(self.leader_index, x)
 
     # check whether shared_list[index] belongs to oneself
     def check_secret(self, index, x):
-        u = bytesToObject(self.node.shared_list[index][0].encode(), self.node.group)
-        v = bytesToObject(self.node.shared_list[index][1].encode(), self.node.group)
+        u = bytesToObject(self.shared_list[index][0].encode(), self.group)
+        v = bytesToObject(self.shared_list[index][1].encode(), self.group)
         if (u ** x == v):
             return True
         return False
+
+    def broadcast_shared_list(self):
+        shared_list = self.shared_list
+        for validator in self.validator_list:
+            if self.is_self(validator):
+                continue
+            print(validator["addr"] + ":" + validator["port"])
+            url = "http://{host}:{port}/broadcast_shared_list_handler".format(host=validator["addr"],
+                                                                              port=validator["port"])
+            requests.post(url, data=json.dumps(shared_list))
+
+    def broadcast_group_primitive(self):
+        for validator in self.validator_list:
+            if self.is_self(validator):
+                continue
+            url = "http://{host}:{port}/broadcast_group_primitive_handler".format(host=validator["addr"],
+                                                                                  port=validator["port"])
+            requests.post(url, data=json.dumps(objectToBytes(self.g, self.group).decode()))
+
+    def broadcast_identity(self):
+        for validator in self.validator_list:
+            if self.is_self(validator):
+                continue
+            url = "http://{host}:{port}/broadcast_identity_handler".format(host=validator["addr"],
+                                                                           port=validator["port"])
+            requests.post(url, data=json.dumps({
+                "addr": self.addr,
+                "port": self.port,
+                "x": objectToBytes(self.x, self.group).decode()
+            }))
+
+    def is_self(self, obj):
+        return obj["addr"] == self.addr and obj["port"] == self.port

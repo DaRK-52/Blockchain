@@ -17,15 +17,8 @@ class SSLENode(Node):
         self.addr = addr
         self.port = port
         self.id_cfg_file = addr + str(port) + "identity.json"
-        # I think ECGroup can construct the same object?
-        self.group = ECGroup(prime192v1)
-        self.g = ""
-        self.x = ""
         self.leader = []
-        self.leader_index = -1
-        self.shared_list = []
-        self.election_strategy = SSLEStrategy(self)
-        self.has_leader = False # TODO: only for temporary use
+
         url = "http://{dns_host}:{dns_port}/register_as_validator".format(
             dns_host=const.DEFUALT_DNS_ADDR,
             dns_port=const.DEFAULT_DNS_PORT
@@ -34,11 +27,13 @@ class SSLENode(Node):
             "addr": self.addr,
             "port": self.port
         }))
-        if (r.text != const.ERROR):
-            self.index = int(r.text)
-        super(SSLENode, self).init()
         self.get_validator_list()
         self.connect_to_validator()
+        self.election_strategy = SSLEStrategy(self)
+        if r.text != const.ERROR:
+            self.election_strategy.index = int(r.text)
+        super(SSLENode, self).init()
+
 
     # validator need to maintain a full connection
     def connect_to_validator(self):
@@ -72,35 +67,8 @@ class SSLENode(Node):
             return True
         return False
 
-    def broadcast_shared_list(self):
-        shared_list = self.shared_list
-        for validator in self.validator_list:
-            if self.is_self(validator):
-                continue
-            print(validator["addr"] + ":"  + validator["port"])
-            url = "http://{host}:{port}/broadcast_shared_list_handler".format(host=validator["addr"],
-                                                                              port=validator["port"])
-            requests.post(url, data=json.dumps(shared_list))
-
-    def broadcast_group_primitive(self):
-        for validator in self.validator_list:
-            if self.is_self(validator):
-                continue
-            url = "http://{host}:{port}/broadcast_group_primitive_handler".format(host=validator["addr"],
-                                                                                  port=validator["port"])
-            requests.post(url, data=json.dumps(objectToBytes(self.g, self.group).decode()))
-
     def broadcast_identity(self):
-        for validator in self.validator_list:
-            if self.is_self(validator):
-                continue
-            url = "http://{host}:{port}/broadcast_identity_handler".format(host=validator["addr"],
-                                                                           port=validator["port"])
-            requests.post(url, data=json.dumps({
-                "addr": self.addr,
-                "port": self.port,
-                "x": objectToBytes(self.x, self.group).decode()
-            }))
+        self.election_strategy.broadcast_identity()
 
     def is_self(self, obj):
         return obj["addr"] == self.addr and obj["port"] == self.port
