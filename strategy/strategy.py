@@ -69,11 +69,14 @@ class SSLEStrategy(EStrategy):
         self.g = ""
         self.x = ""
         self.index = -1
+        self.leader = {}
         self.leader_index = -1
         self.shared_list = []
         self.validator_list = node.validator_list
         self.addr = node.addr
         self.port = node.port
+
+        self.temp_flag = False
 
     # The pulic list is empty at this time
     # we need to broadcast our group parameter g
@@ -83,43 +86,30 @@ class SSLEStrategy(EStrategy):
             self.g = self.group.random(G)
             self.broadcast_group_primitive()
 
-        if len(self.shared_list) == self.index - 1:
+        if len(self.shared_list) == self.index - 1 and not self.leader:
             self.submit_secret()
 
-        # TODO: support optimization later
-        # if len(self.shared_list) == len(self.validator_list):
-        #     self.incre_election()
+        if self.leader and self.check_leader() and self.temp_flag:
+            self.substitute_secret()
 
-    # The elected leader substitute its secret
-    def incre_election(self):
-        if self.check_leader():
-            x = self.x
-            for i in range(len(self.shared_list)):
-                if self.check_secret(i, x):
-                    self.substitute_secret(i)
-                    break
-            # temp solution, because itself won't execute broadcast_shared_list_handler
-            url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
-                                                                               dns_port=const.DEFAULT_DNS_PORT)
-            r = requests.get(url=url)
-            self.leader_index = int(r.text)
-            if self.check_leader():
-                self.leader = {"addr": self.addr, "port": self.port}
-                print(self.addr + ":" + self.port)
-                print("I'm the leader2!")
-            self.broadcast_identity()
-
-    def substitute_secret(self, index):
-        self.shared_list.pop(index)
-        self.submit_secret()
+        # leave check_leader false alone
+        if len(self.shared_list) == len(self.validator_list):
+            self.request_election_result_and_broadcast_if_leader()
 
     def submit_secret(self):
         r = self.group.random(ZR)
         self.x = self.group.random(ZR)
         self.shared_list.append([objectToBytes(self.g ** r, self.group).decode(),
-                                      objectToBytes(self.g ** (self.x * r), self.group).decode()])
+                                 objectToBytes(self.g ** (self.x * r), self.group).decode()])
         self.shuffle()
         self.broadcast_shared_list()
+
+    def substitute_secret(self):
+        for i in range(len(self.shared_list)):
+            if self.check_secret(i, self.x):
+                self.shared_list.pop(i)
+                self.submit_secret()
+                break
 
     # Every time we start ssle, we need to blind and shuffle the list
     def shuffle(self):
@@ -132,6 +122,16 @@ class SSLEStrategy(EStrategy):
                 [objectToBytes(u ** r, self.group).decode(), objectToBytes(v ** r, self.group).decode()])
         self.shared_list = temp_list
         random.shuffle(self.shared_list)
+
+    def request_election_result_and_broadcast_if_leader(self):
+        url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
+                                                                           dns_port=const.DEFAULT_DNS_PORT)
+        r = requests.get(url=url)
+        self.leader_index = int(r.text)
+        if self.check_leader():
+            print("I'm leader")
+            self.leader = {"addr": self.addr, "port": self.port}
+            self.broadcast_identity()
 
     def check_leader(self, x=None):
         if not x:

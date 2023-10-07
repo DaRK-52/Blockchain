@@ -43,26 +43,27 @@ def connection_from_validator():
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
     print("List length: " + str(len(shared_list)))
-    if len(shared_list) > len(node.election_strategy.shared_list) or len(shared_list) == len(node.election_strategy.validator_list):
+    if len(shared_list) > len(node.election_strategy.shared_list) or len(shared_list) == len(
+            node.election_strategy.validator_list):
         node.election_strategy.shared_list = shared_list
     else:
         # get a previous shared listm, just ignore it
         return const.SUCCESS
     node.begin_election()
 
-    # ask dns server for the random number
-    if len(node.election_strategy.shared_list) == len(node.validator_list):
-        url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
-                                                                           dns_port=const.DEFAULT_DNS_PORT)
-        r = requests.get(url=url)
-        node.election_strategy.leader_index = int(r.text)
-        print(node.check_leader())
-        if (node.check_leader()):
-            node.leader = {"addr": node.addr, "port": node.port}
-            print(node.addr + ":" + node.port)
-            print(time.time())
-            print("I'm the leader1!")
-            node.broadcast_identity()
+    # # ask dns server for the random number
+    # if len(node.election_strategy.shared_list) == len(node.validator_list):
+    #     url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
+    #                                                                        dns_port=const.DEFAULT_DNS_PORT)
+    #     r = requests.get(url=url)
+    #     node.election_strategy.leader_index = int(r.text)
+    #     print(node.check_leader())
+    #     if node.check_leader():
+    #         node.election_strategy.leader = {"addr": node.addr, "port": node.port}
+    #         print(node.addr + ":" + node.port)
+    #         print(time.time())
+    #         print("I'm the leader1!")
+    #         node.broadcast_identity()
     return const.SUCCESS
 
 
@@ -86,6 +87,8 @@ def broadcast_identity_handler():
 def begin_election():
     print(time.time())
     node.begin_election()
+    # Temp solution
+    node.election_strategy.temp_flag = True
     return const.SUCCESS
 
 
@@ -99,4 +102,4 @@ if __name__ == "__main__":
     node.init(addr=args.address, port=args.port)
     host = args.address
     port = args.port
-    app.run(debug=True, host=host, port=port)
+    app.run(debug=False, host=host, port=port)

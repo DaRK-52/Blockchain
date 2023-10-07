@@ -17,7 +17,6 @@ class SSLENode(Node):
         self.addr = addr
         self.port = port
         self.id_cfg_file = addr + str(port) + "identity.json"
-        self.leader = []
 
         url = "http://{dns_host}:{dns_port}/register_as_validator".format(
             dns_host=const.DEFUALT_DNS_ADDR,
@@ -33,7 +32,6 @@ class SSLENode(Node):
         if r.text != const.ERROR:
             self.election_strategy.index = int(r.text)
         super(SSLENode, self).init()
-
 
     # validator need to maintain a full connection
     def connect_to_validator(self):
