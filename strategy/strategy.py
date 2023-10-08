@@ -76,8 +76,6 @@ class SSLEStrategy(EStrategy):
         self.addr = node.addr
         self.port = node.port
 
-        self.temp_flag = False
-
     # The pulic list is empty at this time
     # we need to broadcast our group parameter g
     # and the list with our own secret value
@@ -89,7 +87,15 @@ class SSLEStrategy(EStrategy):
         if len(self.shared_list) == self.index - 1 and not self.leader:
             self.submit_secret()
 
-        if self.leader and self.check_leader() and self.temp_flag:
+        # in round 1, request from /begin_election and
+        # /broadcast_shared_list_handler will trigger
+        # begin_election twice, need to avoid it
+        if self.index == 1 and len(self.shared_list) == 1:
+            return
+
+        # no need to check if validator list if full because
+        # after round 1, validator is always full
+        if self.leader and self.check_leader():
             self.substitute_secret()
 
         # leave check_leader false alone
