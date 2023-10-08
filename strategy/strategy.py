@@ -8,6 +8,8 @@ from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
 
+from util.requestUtil import urlUtil
+
 
 class Strategy():
     pass
@@ -130,8 +132,7 @@ class SSLEStrategy(EStrategy):
         random.shuffle(self.shared_list)
 
     def request_election_result_and_broadcast_if_leader(self):
-        url = "http://{dns_host}:{dns_port}/get_random_number_ssle".format(dns_host=const.DEFUALT_DNS_ADDR,
-                                                                           dns_port=const.DEFAULT_DNS_PORT)
+        url = urlUtil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_random_number_ssle")
         r = requests.get(url=url)
         self.leader_index = int(r.text)
         if self.check_leader():
@@ -157,25 +158,21 @@ class SSLEStrategy(EStrategy):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            print(validator["addr"] + ":" + validator["port"])
-            url = "http://{host}:{port}/broadcast_shared_list_handler".format(host=validator["addr"],
-                                                                              port=validator["port"])
+            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_shared_list_handler")
             requests.post(url, data=json.dumps(shared_list))
 
     def broadcast_group_primitive(self):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            url = "http://{host}:{port}/broadcast_group_primitive_handler".format(host=validator["addr"],
-                                                                                  port=validator["port"])
+            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_group_primitive_handler")
             requests.post(url, data=json.dumps(objectToBytes(self.g, self.group).decode()))
 
     def broadcast_identity(self):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            url = "http://{host}:{port}/broadcast_identity_handler".format(host=validator["addr"],
-                                                                           port=validator["port"])
+            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_identity_handler")
             requests.post(url, data=json.dumps({
                 "addr": self.addr,
                 "port": self.port,
