@@ -8,7 +8,7 @@ from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
 
-from util.requestUtil import urlUtil
+from util.requestUtil import Urlutil
 
 
 class Strategy():
@@ -86,14 +86,13 @@ class SSLEStrategy(EStrategy):
             self.g = self.group.random(G)
             self.broadcast_group_primitive()
 
-        if len(self.shared_list) == self.index - 1 and not self.leader:
-            self.submit_secret()
-
         # in round 1, request from /begin_election and
         # /broadcast_shared_list_handler will trigger
         # begin_election twice, need to avoid it
-        if self.index == 1 and len(self.shared_list) == 1:
-            return
+        if len(self.shared_list) == self.index - 1 and not self.leader:
+            self.submit_secret()
+            if self.index == 1:
+                return
 
         # no need to check if validator list if full because
         # after round 1, validator is always full
@@ -132,7 +131,7 @@ class SSLEStrategy(EStrategy):
         random.shuffle(self.shared_list)
 
     def request_election_result_and_broadcast_if_leader(self):
-        url = urlUtil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_random_number_ssle")
+        url = Urlutil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_random_number_ssle")
         r = requests.get(url=url)
         self.leader_index = int(r.text)
         if self.check_leader():
@@ -158,21 +157,21 @@ class SSLEStrategy(EStrategy):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_shared_list_handler")
+            url = Urlutil.make_url(validator["addr"], validator["port"], "broadcast_shared_list_handler")
             requests.post(url, data=json.dumps(shared_list))
 
     def broadcast_group_primitive(self):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_group_primitive_handler")
+            url = Urlutil.make_url(validator["addr"], validator["port"], "broadcast_group_primitive_handler")
             requests.post(url, data=json.dumps(objectToBytes(self.g, self.group).decode()))
 
     def broadcast_identity(self):
         for validator in self.validator_list:
             if self.is_self(validator):
                 continue
-            url = urlUtil.make_url(validator["addr"], validator["port"], "broadcast_identity_handler")
+            url = Urlutil.make_url(validator["addr"], validator["port"], "broadcast_identity_handler")
             requests.post(url, data=json.dumps({
                 "addr": self.addr,
                 "port": self.port,

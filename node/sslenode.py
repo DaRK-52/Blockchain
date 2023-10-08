@@ -5,7 +5,7 @@ import requests
 import json
 import sys
 
-from util.requestUtil import urlUtil
+from util.requestUtil import Urlutil, Datautil
 
 sys.path.insert(0, sys.path[0] + "/../")
 import const
@@ -24,11 +24,8 @@ class SSLENode(Node):
         self.port = port
         self.id_cfg_file = addr + str(port) + "identity.json"
 
-        url = urlUtil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "register_as_validator")
-        r = requests.post(url=url, data=json.dumps({
-            "addr": self.addr,
-            "port": self.port
-        }))
+        url = Urlutil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "register_as_validator")
+        r = requests.post(url=url, data=json.dumps(Datautil.make_addr_port_dict(self)))
         self.get_validator_list()
         self.connect_to_validator()
         self.election_strategy = SSLEStrategy(self)
@@ -42,11 +39,8 @@ class SSLENode(Node):
             # neglect oneself
             if self.is_self(validator):
                 continue
-            url = urlUtil.make_url(validator["addr"], validator["port"], "connect_validator")
-            requests.post(url, data=json.dumps({
-                "addr": self.addr,
-                "port": self.port
-            }))
+            url = Urlutil.make_url(validator["addr"], validator["port"], "connect_validator")
+            requests.post(url, data=json.dumps(Datautil.make_addr_port_dict(self)))
 
     def connection_from_validator(self, validator):
         if {"addr": validator["addr"], "port": validator["port"]} not in self.validator_list:
@@ -60,7 +54,7 @@ class SSLENode(Node):
         return self.election_strategy.check_leader(x)
 
     def get_validator_list(self):
-        url = urlUtil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_validator_list")
+        url = Urlutil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_validator_list")
         r = requests.get(url=url)
         if r.text is not None:
             self.validator_list = json.loads(r.text)
