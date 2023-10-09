@@ -8,12 +8,18 @@ from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
 import sys
 
+from util.requestUtil import Urlutil
+
 sys.path.insert(0, sys.path[0] + "/../")
 import node.sslenode
 import const
 import time
+import logging
 
 app = Flask(__name__)
+
+logger = logging.getLogger('werkzeug')
+logger.setLevel(logging.ERROR)
 
 # if flag == True, return the dict itself
 # in case we need other params
@@ -41,7 +47,6 @@ def connection_from_validator():
 @app.route("/broadcast_shared_list_handler", methods=["POST"])
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
-    print("List length: " + str(len(shared_list)))
     if len(shared_list) > len(node.election_strategy.shared_list) or len(shared_list) == len(
             node.election_strategy.validator_list):
         node.election_strategy.shared_list = shared_list
@@ -62,15 +67,19 @@ def broadcast_group_primitive_handler():
 def broadcast_identity_handler():
     addr, port, msg = get_addr_port(flag=True)
     x = bytesToObject(msg["x"].encode(), node.election_strategy.group)
+    url = Urlutil.make_url(const.DEFUALT_DNS_ADDR, const.DEFAULT_DNS_PORT, "get_random_number_ssle")
+    r = requests.get(url=url)
+    node.election_strategy.leader_index = int(r.text)
     if node.check_leader(x=x):
-        node.leader = {"addr": addr, "port": port}
+        print("get identity from other nodes!")
+        node.election_strategy.round = node.election_strategy.round + 1
+        node.election_strategy.leader = {"addr": addr, "port": port}
         return const.SUCCESS
     return const.ERROR
 
 
 @app.route("/begin_election", methods=["GET"])
 def begin_election():
-    print(time.time())
     node.begin_election()
     return const.SUCCESS
 

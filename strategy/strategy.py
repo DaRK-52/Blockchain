@@ -7,9 +7,10 @@ import requests
 from charm.toolbox.eccurve import prime192v1
 from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
+import inspect
+import threading
 
 from util.requestUtil import Urlutil
-
 
 class Strategy():
     pass
@@ -77,6 +78,9 @@ class SSLEStrategy(EStrategy):
         self.validator_list = node.validator_list
         self.addr = node.addr
         self.port = node.port
+        self.election_timer = None
+        self.broadcast_identity_timer = None # avoid receive identity before list
+        self.round = 0
 
     # The pulic list is empty at this time
     # we need to broadcast our group parameter g
@@ -91,13 +95,14 @@ class SSLEStrategy(EStrategy):
         # begin_election twice, need to avoid it
         if len(self.shared_list) == self.index - 1 and not self.leader:
             self.submit_secret()
-            if self.index == 1:
-                return
+            return
 
         # no need to check if validator list if full because
         # after round 1, validator is always full
-        if self.leader and self.check_leader():
-            self.substitute_secret()
+        # can not invoke check_leader here, still no idea why
+        # maybe the sequence causes mismatch of secret x?
+        if self.leader and self.leader["addr"] == self.addr and self.leader["port"] == self.port:
+                self.substitute_secret()
 
         # leave check_leader false alone
         if len(self.shared_list) == len(self.validator_list):
@@ -135,9 +140,15 @@ class SSLEStrategy(EStrategy):
         r = requests.get(url=url)
         self.leader_index = int(r.text)
         if self.check_leader():
-            print("I'm leader")
+            self.round = self.round + 1
+            print("Round" + str(self.round) + " I'm leader")
+            caller_frames = inspect.stack()
             self.leader = {"addr": self.addr, "port": self.port}
-            self.broadcast_identity()
+            # ensure receive list before broadcast identity
+            self.broadcast_identity_timer = threading.Timer(1.5, self.broadcast_identity)
+            self.broadcast_identity_timer.start()
+            self.election_timer = threading.Timer(3.0, self.begin_election)
+            self.election_timer.start()
 
     def check_leader(self, x=None):
         if not x:
