@@ -8,9 +8,8 @@ from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
 import sys
 
-from util.requestUtil import Urlutil
-
 sys.path.insert(0, sys.path[0] + "/../")
+from util.requestUtil import Urlutil
 import node.sslenode
 import const
 import time
@@ -20,6 +19,7 @@ app = Flask(__name__)
 
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
+
 
 # if flag == True, return the dict itself
 # in case we need other params
@@ -47,6 +47,7 @@ def connection_from_validator():
 @app.route("/broadcast_shared_list_handler", methods=["POST"])
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
+    print("From handler:", sys.getsizeof(json.dumps(shared_list)))
     if len(shared_list) > len(node.election_strategy.shared_list) or len(shared_list) == len(
             node.election_strategy.validator_list):
         node.election_strategy.shared_list = shared_list

@@ -1,5 +1,7 @@
 import hashlib
 import random
+import sys
+
 import const
 from block.block import TestBlock
 import json
@@ -11,6 +13,7 @@ import inspect
 import threading
 
 from util.requestUtil import Urlutil
+
 
 class Strategy():
     pass
@@ -79,7 +82,7 @@ class SSLEStrategy(EStrategy):
         self.addr = node.addr
         self.port = node.port
         self.election_timer = None
-        self.broadcast_identity_timer = None # avoid receive identity before list
+        self.broadcast_identity_timer = None  # avoid receive identity before list
         self.round = 0
 
     # The pulic list is empty at this time
@@ -95,17 +98,20 @@ class SSLEStrategy(EStrategy):
         # begin_election twice, need to avoid it
         if len(self.shared_list) == self.index - 1 and not self.leader:
             self.submit_secret()
-            return
+            if self.index != len(self.validator_list):
+                return
 
         # no need to check if validator list if full because
         # after round 1, validator is always full
         # can not invoke check_leader here, still no idea why
         # maybe the sequence causes mismatch of secret x?
         if self.leader and self.leader["addr"] == self.addr and self.leader["port"] == self.port:
-                self.substitute_secret()
+            self.substitute_secret()
 
         # leave check_leader false alone
+        print("request election result", len(self.shared_list), len(self.validator_list))
         if len(self.shared_list) == len(self.validator_list):
+            print("request election result")
             self.request_election_result_and_broadcast_if_leader()
 
     def submit_secret(self):
@@ -169,6 +175,7 @@ class SSLEStrategy(EStrategy):
             if self.is_self(validator):
                 continue
             url = Urlutil.make_url(validator["addr"], validator["port"], "broadcast_shared_list_handler")
+            print("shared list size: ", sys.getsizeof(json.dumps(shared_list)))
             requests.post(url, data=json.dumps(shared_list))
 
     def broadcast_group_primitive(self):
