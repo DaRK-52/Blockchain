@@ -47,7 +47,7 @@ def connection_from_validator():
 @app.route("/broadcast_shared_list_handler", methods=["POST"])
 def broadcast_shared_list_handler():
     shared_list = json.loads(request.get_data())
-    print("From handler:", sys.getsizeof(json.dumps(shared_list)))
+    # print("From handler:", sys.getsizeof(json.dumps(shared_list)))
     if len(shared_list) > len(node.election_strategy.shared_list) or len(shared_list) == len(
             node.election_strategy.validator_list):
         node.election_strategy.shared_list = shared_list
@@ -72,7 +72,7 @@ def broadcast_identity_handler():
     r = requests.get(url=url)
     node.election_strategy.leader_index = int(r.text)
     if node.check_leader(x=x):
-        print("get identity from other nodes!")
+        # print("get identity from other nodes!")
         node.election_strategy.round = node.election_strategy.round + 1
         node.election_strategy.leader = {"addr": addr, "port": port}
         return const.SUCCESS
@@ -81,7 +81,9 @@ def broadcast_identity_handler():
 
 @app.route("/begin_election", methods=["GET"])
 def begin_election():
+    t = time.time()
     node.begin_election()
+    print(time.time() - t)
     return const.SUCCESS
 
 

@@ -11,6 +11,7 @@ from charm.toolbox.ecgroup import ECGroup, G, ZR
 from charm.core.engine.util import objectToBytes, bytesToObject
 import inspect
 import threading
+import time
 
 from util.requestUtil import Urlutil
 
@@ -106,12 +107,14 @@ class SSLEStrategy(EStrategy):
         # can not invoke check_leader here, still no idea why
         # maybe the sequence causes mismatch of secret x?
         if self.leader and self.leader["addr"] == self.addr and self.leader["port"] == self.port:
+            t = time.time()
             self.substitute_secret()
+            print(time.time() - t)
 
         # leave check_leader false alone
-        print("request election result", len(self.shared_list), len(self.validator_list))
+        # print("request election result", len(self.shared_list), len(self.validator_list))
         if len(self.shared_list) == len(self.validator_list):
-            print("request election result")
+            # print("request election result")
             self.request_election_result_and_broadcast_if_leader()
 
     def submit_secret(self):
@@ -147,7 +150,7 @@ class SSLEStrategy(EStrategy):
         self.leader_index = int(r.text)
         if self.check_leader():
             self.round = self.round + 1
-            print("Round" + str(self.round) + " I'm leader")
+            # print("Round" + str(self.round) + " I'm leader")
             caller_frames = inspect.stack()
             self.leader = {"addr": self.addr, "port": self.port}
             # ensure receive list before broadcast identity
@@ -175,7 +178,7 @@ class SSLEStrategy(EStrategy):
             if self.is_self(validator):
                 continue
             url = Urlutil.make_url(validator["addr"], validator["port"], "broadcast_shared_list_handler")
-            print("shared list size: ", sys.getsizeof(json.dumps(shared_list)))
+            # print("shared list size: ", sys.getsizeof(json.dumps(shared_list)))
             requests.post(url, data=json.dumps(shared_list))
 
     def broadcast_group_primitive(self):
